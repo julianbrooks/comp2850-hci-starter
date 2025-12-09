@@ -89,7 +89,7 @@ fun Route.taskRoutes() {
                 val error = """<div id="status" hx-swap-oob="true" role="alert" aria-live="assertive">
                     Title is required. Please enter at least one character.
                 </div>"""
-                return@post call.respondText(error, ContentType.Text.Html, HttpStatusCode.BadRequest)
+                return@post call.respondText(error, ContentType.Text.Html)
             } else {
                 // No-JS: redirect back (could add error query param)
                 call.response.headers.append("Location", "/tasks")
@@ -147,4 +147,91 @@ fun Route.taskRoutes() {
     // - GET /tasks/{id}/edit - Show edit form (dual-mode)
     // - POST /tasks/{id}/edit - Save edits with validation (dual-mode)
     // - GET /tasks/{id}/view - Cancel edit (HTMX only)
+    get("/tasks/{id}/edit") {
+        val id = call.parameters["id"]?.toIntOrNull()
+        if (id == null) {
+            call.respond(HttpStatusCode.NotFound)
+            return@get
+        }
+
+        val task = TaskRepository.get(id)
+        if (task == null) {
+            call.respond(HttpStatusCode.NotFound)
+            return@get
+        }
+
+        val errorParam = call.request.queryParameters["error"]
+        val errorMessage = if (errorParam == "blank") "Title is required. Please enter at least one character." else null
+
+        if (call.isHtmx()) {
+            val writer = StringWriter()
+            pebble.getTemplate("tasks/_edit.peb").evaluate(writer, mapOf(
+                "task" to task,
+                "error" to errorMessage
+            ))
+            call.respondText(writer.toString(), ContentType.Text.Html)
+        } else {
+            val writer = StringWriter()
+            pebble.getTemplate("tasks/index.peb").evaluate(writer, mapOf(
+                "title" to "Tasks",
+                "tasks" to TaskRepository.all(),
+                "editingId" to id,
+                "errorMessage" to errorMessage
+            ))
+            call.respondText(writer.toString(), ContentType.Text.Html)
+        }
+    }
+
+    post("/tasks/{id}/edit") {
+        val id = call.parameters["id"]?.toIntOrNull()
+        val newTitle = call.receiveParameters()["title"]?.trim()
+
+        if (id == null || newTitle == null) {
+            call.respond(HttpStatusCode.BadRequest)
+            return@post
+        }
+
+        if (newTitle.isBlank()) {
+            if (call.isHtmx()) {
+                val task = TaskRepository.get(id)
+                val writer = StringWriter()
+                pebble.getTemplate("tasks/_edit.peb").evaluate(writer, mapOf(
+                    "task" to task,
+                    "error" to "Title is required. Please enter at least one character."
+                ))
+                call.respondText(writer.toString(), ContentType.Text.Html)
+            } else {
+                call.respondRedirect("/tasks/$id/edit?error=blank")
+            }
+            return@post
+        }
+
+        val updatedTask = TaskRepository.update(id, newTitle)
+
+        if (updatedTask != null) {
+            if (call.isHtmx()) {
+                val writer = StringWriter()
+                pebble.getTemplate("tasks/_item.peb").evaluate(writer, mapOf("task" to updatedTask))
+                val status = """<div id="status" hx-swap-oob="true">Task updated.</div>"""
+                call.respondText(writer.toString() + status, ContentType.Text.Html)
+            } else {
+                call.respondRedirect("/tasks")
+            }
+        } else {
+            call.respond(HttpStatusCode.NotFound)
+        }
+    }
+
+    get("/tasks/{id}/view") {
+        val id = call.parameters["id"]?.toIntOrNull()
+        val task = id?.let { TaskRepository.get(it) }
+
+        if (task != null) {
+            val writer = StringWriter()
+            pebble.getTemplate("tasks/_item.peb").evaluate(writer, mapOf("task" to task))
+            call.respondText(writer.toString(), ContentType.Text.Html)
+        } else {
+            call.respondRedirect("/tasks")
+        }
+    }
 }
