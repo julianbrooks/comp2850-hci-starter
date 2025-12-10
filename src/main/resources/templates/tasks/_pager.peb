@@ -1,0 +1,30 @@
+{# Pagination navigation with dual-mode support (HTMX + no-JS) #}
+<nav aria-label="Pagination">
+  <ul class="pagination">
+    {% if page.hasPrevious %}
+      <li>
+        <a href="/tasks?q={{ q|default('') }}&page={{ page.previousPage }}"
+           hx-get="/tasks/fragment?q={{ q|default('') }}&page={{ page.previousPage }}"
+           hx-target="#task-area"
+           hx-push-url="true">
+          Previous
+        </a>
+      </li>
+    {% endif %}
+
+    <li aria-current="page">
+      Page {{ page.currentPage }} of {{ page.totalPages }}
+    </li>
+
+    {% if page.hasNext %}
+      <li>
+        <a href="/tasks?q={{ q|default('') }}&page={{ page.nextPage }}"
+           hx-get="/tasks/fragment?q={{ q|default('') }}&page={{ page.nextPage }}"
+           hx-target="#task-area"
+           hx-push-url="true">
+          Next
+        </a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>

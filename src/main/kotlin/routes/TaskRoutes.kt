@@ -45,7 +45,7 @@ import java.io.StringWriter
  * - Week 8: Add pagination, search
  */
 
-fun Route.taskRoutes() {
+fun Routing.configureTaskRoutes(store: TaskStore = TaskStore()) {
     val pebble =
         PebbleEngine
             .Builder()
@@ -60,20 +60,36 @@ fun Route.taskRoutes() {
      */
     fun ApplicationCall.isHtmx(): Boolean = request.headers["HX-Request"]?.equals("true", ignoreCase = true) == true
 
+    // Fragment endpoint for HTMX updates
+    get("/tasks/fragment") {
+        val q = call.request.queryParameters["q"]?.trim().orEmpty()
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+        val tasks = store.search(q).map { it.toPebbleContext() }
+        val pageData = Page.paginate(tasks, currentPage = page, pageSize = 10)
+
+        val list = call.renderTemplate("tasks/_list.peb", mapOf("page" to pageData, "q" to q))
+        val pager = call.renderTemplate("tasks/_pager.peb", mapOf("page" to pageData, "q" to q))
+        val status = """<div id="status" hx-swap-oob="true">Updated: showing ${pageData.items.size} of ${pageData.totalItems} tasks</div>"""
+
+        call.respondText(list + pager + status, ContentType.Text.Html)
+    }
+
     /**
      * GET /tasks - List all tasks
      * Returns full page (no HTMX differentiation in Week 6)
      */
     get("/tasks") {
-        val model =
-            mapOf(
-                "title" to "Tasks",
-                "tasks" to TaskRepository.all(),
-            )
-        val template = pebble.getTemplate("tasks/index.peb")
-        val writer = StringWriter()
-        template.evaluate(writer, model)
-        call.respondText(writer.toString(), ContentType.Text.Html)
+        val q = call.request.queryParameters["q"]?.trim().orEmpty()
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+        val tasks = store.search(q).map { it.toPebbleContext() }
+        val pageData = Page.paginate(tasks, currentPage = page, pageSize = 10)
+
+        val html = call.renderTemplate("tasks/index.peb", mapOf(
+            "page" to pageData,
+            "q" to q,
+            "title" to "Tasks"
+        ))
+        call.respondText(html, ContentType.Text.Html)
     }
 
     /**

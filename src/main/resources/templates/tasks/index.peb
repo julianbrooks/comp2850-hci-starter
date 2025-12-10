@@ -1,38 +1,40 @@
 {% extends "_layout/base.peb" %}
-
 {% block content %}
+
 <h1>Tasks</h1>
 
-{# Add Task Form - Week 6 #}
-<section aria-labelledby="add-heading">
-  <h2 id="add-heading">Add a new task</h2>
-  <form action="/tasks" method="post"
-        hx-post="/tasks"
-        hx-target="#task-list"
-        hx-swap="beforeend">
-    <label for="title">Title</label>
-    <input type="text" id="title" name="title" required
-           placeholder="e.g., Buy milk" aria-describedby="title-hint">
-    <small id="title-hint">Keep it short and specific.</small>
-    {# Minor issue: unlabeled input for Week 7 Lab 2 #}
-    <input type="text" name="priority" placeholder="Priority (optional)">
-    <button type="submit">Add Task</button>
-  </form>
-</section>
+{# Add Task Form - targets #task-area (not #task-list) for Week 8 #}
+<form action="/tasks" method="post"
+      hx-post="/tasks"
+      hx-target="#task-area"
+      hx-swap="innerHTML"
+      hx-on::after-request="this.reset()">
+  <label for="title">Title</label>
+  <input type="text" id="title" name="title" required aria-describedby="title-hint">
+  <small id="title-hint">Keep it short and specific.</small>
+  <button type="submit">Add Task</button>
+</form>
 
-{# Task List - Week 7 Update #}
-<section aria-labelledby="list-heading">
-  <h2 id="list-heading">Current tasks ({{ tasks | length }})</h2>
-  <ul id="task-list">
-    {% for task in tasks %}
-      {% if editingId is not null and editingId == task.id %}
-        {% include "tasks/_edit.peb" with {"task": task, "error": errorMessage} %}
-      {% else %}
-        {% include "tasks/_item.peb" with {"task": task} %}
-      {% endif %}
-    {% else %}
-      <li>No tasks yet. Add one above!</li>
-    {% endfor %}
-  </ul>
-</section>
+{# Filter Form - dual-mode (HTMX + no-JS) #}
+<form action="/tasks" method="get"
+      hx-get="/tasks/fragment"
+      hx-target="#task-area"
+      hx-push-url="true"
+      hx-trigger="keyup changed delay:300ms from:#q, submit">
+  <label for="q">Filter tasks</label>
+  <input type="search"
+         id="q"
+         name="q"
+         value="{{ q|default('') }}"
+         aria-describedby="q-hint">
+  <small id="q-hint">Type to filter (debounced 300ms); works without JavaScript.</small>
+  <button type="submit">Apply Filter</button>
+</form>
+
+{# Task area wrapper for HTMX targeting #}
+<div id="task-area">
+  {% include "tasks/_list.peb" %}
+  {% include "tasks/_pager.peb" %}
+</div>
+
 {% endblock %}
