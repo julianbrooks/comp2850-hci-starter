@@ -257,10 +257,27 @@ select:focus {
    (For Week 7 Lab 2 audit exercise)
    ======================================== */
 
-/* Issue: Button color contrast fails WCAG 1.4.3 (AA)
-   Color #6c757d on white background = 4.2:1 contrast (needs 4.5:1)
-   Students will discover this with axe DevTools and fix in Week 7 Lab 2 */
-button[type="submit"],
+/* Fix 09: Delete Button Contrast (WCAG 1.4.3)
+   Target: Delete button (on white/light background)
+   Action: Change text to darker gray (#495057) for 7:1 contrast (AAA)
+   Implementation: Global button style */
 button {
-  color: #6c757d;
+  color: #495057;
+  font-weight: 600;
+}
+
+/* Fix for "Add Task" Button (The Blue Button)
+   Reason: The rule above (dark gray) would make the blue button unreadable.
+   Action: We MUST override the blue button to have WHITE text.
+   Result: ~5.9:1 contrast (Passes AA) */
+form[action="/tasks"] button[type="submit"] {
+  color: #ffffff;            /* Force white text */
+  border: 1px solid #0172ad;
+}
+
+/* Fix 10: Focus outline (Ensuring global focus is clear) */
+*:focus {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+}
 }

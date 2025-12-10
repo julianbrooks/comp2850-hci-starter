@@ -5,7 +5,6 @@
           hx-swap="outerHTML">
 
         <label for="title-{{ task.id }}">Title</label>
-
         <input type="text"
                id="title-{{ task.id }}"
                name="title"
@@ -13,7 +12,6 @@
                required
                autofocus
                aria-describedby="hint-{{ task.id }}{% if error %} error-{{ task.id }}{% endif %}">
-
         <small id="hint-{{ task.id }}">Keep it short and specific.</small>
 
         {% if error %}
@@ -22,13 +20,15 @@
             </p>
         {% endif %}
 
-        <button type="submit">Save</button>
+        <div class="grid"> <button type="submit" class="outline secondary">Save</button>
 
-        <a href="/tasks"
-           hx-get="/tasks/{{ task.id }}/view"
-           hx-target="#task-{{ task.id }}"
-           hx-swap="outerHTML"
-           role="button"
-           class="secondary">Cancel</a>
+            <button type="button"
+                    hx-get="/tasks/{{ task.id }}/view"
+                    hx-target="#task-{{ task.id }}"
+                    hx-swap="outerHTML"
+                    class="outline secondary">
+                Cancel
+            </button>
+        </div>
     </form>
 </li>
